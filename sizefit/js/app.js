@@ -173,6 +173,14 @@
         if (!window.Tesseract) await loadScript(TESSERACT_URL);
         const wopts = { logger: (m) => onProgress && onProgress(m) };
         ['workerPath', 'corePath', 'langPath'].forEach((k) => { if (CONFIG[k]) wopts[k] = CONFIG[k]; });
+        if (CONFIG.langSuffix) {
+          // Hosts that only serve certain file extensions: store the language files with an
+          // extra suffix and rewrite the worker's requests for them.
+          const real = new URL(CONFIG.workerPath || 'https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/worker.min.js', location.href).href;
+          const src = `const f0 = self.fetch.bind(self); self.fetch = (u, o) => f0(String(u).replace(/\\.traineddata(\\.gz)?$/, (m) => m + ${JSON.stringify(CONFIG.langSuffix)}), o); importScripts(${JSON.stringify(real)});`;
+          wopts.workerPath = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+          wopts.workerBlobURL = false;
+        }
         const worker = await window.Tesseract.createWorker(['chi_sim', 'eng'], 1, wopts);
         await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' });
         return worker;
@@ -476,7 +484,8 @@
 
   function fmtH(cm) { return state.units === 'in' ? SF.fmtHeightImperial(cm) : Math.round(cm) + ' cm'; }
 
-  // PNG export
+  // PNG export: try a direct download, and always show the image so it can be
+  // saved with a long-press / right-click where downloads are blocked.
   async function downloadPng() {
     const svgEl = $('#render svg');
     if (!svgEl) return;
@@ -492,13 +501,16 @@
       const ctx = c.getContext('2d');
       ctx.fillStyle = '#fbfaf8'; ctx.fillRect(0, 0, W, Hh);
       ctx.drawImage(img, 0, 0, W, Hh);
-      c.toBlob((blob) => {
+      const dataUrl = c.toDataURL('image/png');
+      const name = `sizefit-${(state.selected || 'size').replace(/[^\w-]+/g, '')}.png`;
+      const out = $('#png-out');
+      out.hidden = false;
+      out.innerHTML = `<p class="muted small">If nothing downloaded, long-press (phone) or right-click (computer) the picture and choose Save image.</p><img src="${dataUrl}" alt="Fit image for size ${esc(state.selected)}">`;
+      try {
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `sizefit-${(state.selected || 'size').replace(/[^\w-]+/g, '')}.png`;
+        a.href = dataUrl; a.download = name;
         document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      }, 'image/png');
+      } catch (e) { /* downloads blocked: the image above can be saved */ }
     } finally { URL.revokeObjectURL(url); }
   }
 
@@ -540,17 +552,29 @@
     $$('.unit-switch button').forEach((b) => b.addEventListener('click', () => setUnits(b.dataset.units)));
     $$('[name="fitTop"],[name="fitBottom"],[name="figure"],[name="skin"]').forEach((el) => el.addEventListener('change', () => { readProfileForm(); persistProfile(true); }));
     $('#profile-save').addEventListener('click', () => { readProfileForm(); persistProfile(false); if (!missingRequired().length) $('#profile-details').open = false; });
+    const codeBox = $('#profile-code');
     $('#profile-export').addEventListener('click', async () => {
       readProfileForm();
       const code = btoa(unescape(encodeURIComponent(JSON.stringify(state.profile))));
-      try { await navigator.clipboard.writeText(code); $('#profile-msg').textContent = 'Copied. Paste it into "Load profile code" on another device.'; }
-      catch (e) { window.prompt('Copy this profile code:', code); }
+      codeBox.hidden = false;
+      $('#profile-code-input').value = code;
+      $('#profile-code-input').select();
+      try { await navigator.clipboard.writeText(code); $('#profile-msg').textContent = 'Copied. On another device, choose "Load profile code" and paste it.'; }
+      catch (e) { $('#profile-msg').textContent = 'Copy the code from the box below.'; }
     });
     $('#profile-import').addEventListener('click', () => {
-      const code = window.prompt('Paste a SizeFit profile code:');
+      codeBox.hidden = false;
+      $('#profile-code-input').value = '';
+      $('#profile-code-input').focus();
+      $('#profile-msg').textContent = 'Paste a profile code into the box below, then press Load.';
+    });
+    $('#profile-code-load').addEventListener('click', () => {
+      const code = $('#profile-code-input').value.trim();
       if (!code) return;
-      try { Object.assign(state.profile, JSON.parse(decodeURIComponent(escape(atob(code.trim()))))); fillProfileForm(); persistProfile(false); }
-      catch (e) { $('#profile-msg').textContent = 'That code could not be read.'; }
+      try {
+        Object.assign(state.profile, JSON.parse(decodeURIComponent(escape(atob(code)))));
+        fillProfileForm(); persistProfile(false); codeBox.hidden = true;
+      } catch (e) { $('#profile-msg').textContent = "That code couldn't be read. Copy the whole code and try again."; }
     });
 
     $$('.tabs button').forEach((b) => b.addEventListener('click', () => switchTab(b.dataset.tab)));

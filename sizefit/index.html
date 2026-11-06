@@ -72,6 +72,10 @@
           <button type="button" id="profile-import">Load profile code</button>
           <span id="profile-msg" class="msg" role="status"></span>
         </div>
+        <div id="profile-code" class="row" hidden>
+          <input id="profile-code-input" type="text" spellcheck="false" aria-label="Profile code">
+          <button type="button" id="profile-code-load">Load</button>
+        </div>
       </form>
     </details>
   </section>
@@ -144,6 +148,7 @@
           <button type="button" id="download" class="primary">Download image (PNG)</button>
           <span class="muted">Front view drawn to your measurements. It's a fit diagram, not a photo.</span>
         </figcaption>
+        <div id="png-out" class="png-out" hidden></div>
       </figure>
       <div>
         <h3>Compare sizes</h3>

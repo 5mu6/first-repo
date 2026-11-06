@@ -161,3 +161,6 @@ footer { padding: 6px 0 40px; }
 
 .colsel { font-size: 12px; padding: 3px 4px; margin-top: 2px; min-width: 110px; }
 th .unit { display: block; font-weight: 400; }
+#profile-code input { flex: 1; min-width: 0; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+.png-out { margin-top: 10px; }
+.png-out img { display: block; width: 100%; border-radius: 10px; border: 1px solid var(--line); }
