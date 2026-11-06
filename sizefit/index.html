@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SizeFit</title>
+<meta name="description" content="Read Chinese size charts from Taobao, 1688 and Weidian, convert them, pick your size and see the fit on your body.">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <h1>SizeFit <span class="zh">尺码助手</span></h1>
+    <p class="sub">Paste or screenshot a Taobao / 1688 / Weidian size chart → get your size and see how it fits.</p>
+    <div class="unit-switch" role="group" aria-label="Display units">
+      <button type="button" data-units="in" class="on">in / lb</button>
+      <button type="button" data-units="cm">cm / kg</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- 1. Profile ------------------------------------------------------------>
+  <section class="card" id="profile-card">
+    <details id="profile-details" open>
+      <summary><h2><span class="step">1</span> Your measurements</h2><span id="profile-status" class="pill"></span></summary>
+      <p class="hint">Measure over underwear with a soft tape, snug but not tight. Saved only in this browser. Fields marked * are needed; the rest make the fit check more accurate (we estimate them from your height if left blank).</p>
+      <form id="profile-form" autocomplete="off">
+        <fieldset>
+          <legend>Body</legend>
+          <div class="grid" id="profile-fields"></div>
+        </fieldset>
+        <fieldset>
+          <legend>How you like clothes to fit</legend>
+          <div class="grid">
+            <label>Tops fit
+              <select name="fitTop">
+                <option value="slim">Slim / fitted</option>
+                <option value="regular" selected>Regular</option>
+                <option value="relaxed">Relaxed</option>
+                <option value="oversized">Oversized</option>
+              </select>
+            </label>
+            <label>Bottoms fit
+              <select name="fitBottom">
+                <option value="slim">Slim / skinny</option>
+                <option value="regular" selected>Regular / straight</option>
+                <option value="relaxed">Relaxed</option>
+                <option value="oversized">Baggy / wide</option>
+              </select>
+            </label>
+            <label>Figure for the drawing
+              <select name="figure">
+                <option value="masculine">Masculine</option>
+                <option value="feminine">Feminine</option>
+              </select>
+            </label>
+            <label>Figure colour
+              <select name="skin">
+                <option value="mannequin">Mannequin</option>
+                <option value="light">Light</option>
+                <option value="medium">Medium</option>
+                <option value="tan">Tan</option>
+                <option value="deep">Deep</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+        <div class="row">
+          <button type="button" id="profile-save" class="primary">Save measurements</button>
+          <button type="button" id="profile-export">Copy profile code</button>
+          <button type="button" id="profile-import">Load profile code</button>
+          <span id="profile-msg" class="msg" role="status"></span>
+        </div>
+      </form>
+    </details>
+  </section>
+
+  <!-- 2. Chart --------------------------------------------------------------->
+  <section class="card" id="chart-card">
+    <h2><span class="step">2</span> Size chart <span class="zh">尺码表</span></h2>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" data-tab="image" class="on" aria-selected="true">Screenshot / image</button>
+      <button type="button" role="tab" data-tab="text" aria-selected="false">Paste text</button>
+    </div>
+    <div class="tab-panel" data-panel="image">
+      <label id="drop" class="drop" tabindex="0">
+        <input type="file" id="file" accept="image/*" multiple hidden>
+        <strong>Drop a size-chart screenshot here, tap to choose one, or press Ctrl/⌘+V</strong>
+        <span>On your phone: screenshot the size chart in the Taobao / Weidian / agent app, then choose it here. The text is read on your device (first use downloads ~4 MB of Chinese reading data).</span>
+      </label>
+      <div id="ocr-status" class="msg" role="status"></div>
+      <div id="thumbs" class="thumbs"></div>
+    </div>
+    <div class="tab-panel" data-panel="text" hidden>
+      <textarea id="chart-text" rows="7" spellcheck="false" placeholder="尺码 衣长 胸围 肩宽 袖长&#10;S 66 100 44 19&#10;M 68 104 45 20&#10;L 70 108 46 21&#10;…  (Chinese or English, any layout)"></textarea>
+    </div>
+    <div class="grid chart-opts">
+      <label>Product title (optional — helps detect the garment type)
+        <input id="title" type="text" placeholder="e.g. 美式复古重磅短袖T恤男">
+      </label>
+      <label>Garment type
+        <select id="type"><option value="">Auto-detect</option></select>
+      </label>
+      <label>Chart units
+        <select id="chart-unit">
+          <option value="">Auto (usually cm)</option>
+          <option value="cm">cm 厘米</option>
+          <option value="in">inches 英寸</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="stretch"> Fabric is stretchy (弹力)</label>
+    </div>
+    <div class="row">
+      <button type="button" id="analyze" class="primary">Find my size</button>
+      <label class="inline">or try an example:
+        <select id="example">
+          <option value="">—</option>
+          <option value="tee">T-shirt (table)</option>
+          <option value="hoodie">Hoodie (平铺 flat)</option>
+          <option value="jeans">Jeans (2尺2 waist)</option>
+          <option value="joggers">Joggers (elastic waist)</option>
+          <option value="hw">Height/weight only</option>
+          <option value="shoes">Shoes</option>
+        </select>
+      </label>
+    </div>
+    <div id="parsed" hidden>
+      <h3>What was read <span class="muted">— fix any mistakes and it updates instantly</span></h3>
+      <div id="parse-notes" class="notes"></div>
+      <div class="table-scroll"><table id="parsed-table"></table></div>
+      <div class="row"><button type="button" id="add-row">+ Add size</button></div>
+    </div>
+  </section>
+
+  <!-- 3. Result -------------------------------------------------------------->
+  <section class="card" id="result-card" hidden>
+    <h2><span class="step">3</span> Your size</h2>
+    <div id="verdict" class="verdict"></div>
+    <div class="result-grid">
+      <figure class="render">
+        <div id="render"></div>
+        <figcaption>
+          <button type="button" id="download" class="primary">Download image (PNG)</button>
+          <span class="muted">Front view drawn to your measurements. It's a fit diagram, not a photo.</span>
+        </figcaption>
+      </figure>
+      <div>
+        <h3>Compare sizes</h3>
+        <div id="strip" class="strip"></div>
+        <h3>Measurement by measurement</h3>
+        <div class="table-scroll"><table id="breakdown"></table></div>
+        <p class="muted small">Sellers' charts usually have ±1–3 cm of hand-measuring error (手工测量误差). "Ease" = garment minus body.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="muted small">SizeFit runs entirely in your browser. Nothing you enter is uploaded except the one-time download of the text-reading engine.</footer>
+</main>
+
+<script src="js/sizefit-core.js"></script>
+<script src="js/sizefit-render.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
