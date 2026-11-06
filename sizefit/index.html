@@ -143,10 +143,22 @@
     <div id="verdict" class="verdict"></div>
     <div class="result-grid">
       <figure class="render">
+        <div class="view-bar" role="group" aria-label="Fit view">
+          <div class="seg" id="view-mode">
+            <button type="button" data-view="3d" class="on" aria-pressed="true">3D</button>
+            <button type="button" data-view="flat" aria-pressed="false">Flat diagram</button>
+          </div>
+          <div class="seg" id="view-3d-ctrls">
+            <button type="button" id="spin" aria-pressed="true">Pause</button>
+            <button type="button" data-cam="front">Front</button>
+            <button type="button" data-cam="side">Side</button>
+            <button type="button" data-cam="back">Back</button>
+          </div>
+        </div>
         <div id="render"></div>
         <figcaption>
           <button type="button" id="download" class="primary">Download image (PNG)</button>
-          <span class="muted">Front view drawn to your measurements. It's a fit diagram, not a photo.</span>
+          <span class="muted" id="render-note">Built from your measurements, the garment is see-through so you can see the room inside it. Drag to turn it. It's a fit model, not a photo.</span>
         </figcaption>
         <div id="png-out" class="png-out" hidden></div>
       </figure>
@@ -165,6 +177,7 @@
 
 <script src="js/sizefit-core.js"></script>
 <script src="js/sizefit-render.js"></script>
+<script src="js/sizefit-3d.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

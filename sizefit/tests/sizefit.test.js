@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const SF = Object.assign({}, require('../js/sizefit-core.js'), require('../js/sizefit-render.js'));
+const SF = Object.assign({}, require('../js/sizefit-core.js'), require('../js/sizefit-render.js'), require('../js/sizefit-3d.js'));
 
 const fx = (name) => fs.readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
 const ME = { height: 178, weight: 75, chest: 100, waist: 84, hip: 100, shoulder: 46, armLength: 61, inseam: 81, footLength: 26 };
@@ -105,5 +105,37 @@ test('renderer produces an SVG for every fixture', () => {
       assert.match(svg, /^<svg[\s\S]*<\/svg>$/, f);
       assert.doesNotMatch(svg, /NaN|undefined/, f + ' ' + e.label);
     }
+  }
+});
+
+test('3D model: finite geometry, garment outside the body, markers for scored items', () => {
+  for (const f of fs.readdirSync(path.join(__dirname, 'fixtures'))) {
+    const r = SF.analyze(fx(f), ME);
+    if (r.type === 'shoes') continue;
+    for (const e of r.result.evals) {
+      const m = SF.buildFitModel(r.result, r.chart, e.label);
+      const rings = m.body.lofts.concat(m.garment.lofts).flatMap((l) => l.rings);
+      for (const q of rings) {
+        for (const k of ['x', 'y', 'z', 'rx', 'rz']) assert.ok(Number.isFinite(q[k]), `${f} ${e.label} ${k}`);
+        assert.ok(q.rx > 0 && q.rz > 0, `${f} ${e.label} radius`);
+      }
+      // the garment shell never cuts inside the torso it covers
+      const torso = m.body.lofts[0].rings;
+      const shell = m.garment.lofts[0].rings;
+      for (const g of shell) {
+        const b = torso.find((t) => Math.abs(t.y - g.y) < 0.01);
+        if (b && g.y < torso[2].y) assert.ok(SF.circumference3d(g.rx, g.rz) >= SF.circumference3d(b.rx, b.rz) - 0.5, `${f} ${e.label} y=${g.y}`);
+      }
+    }
+    const best = SF.buildFitModel(r.result, r.chart, r.result.best.label);
+    assert.ok(best.markers.length > 0 || r.result.best.items.every((i) => i.kind === 'range'), f);
+  }
+});
+
+test('3D ellipse helper round-trips circumference', () => {
+  for (const [C, k] of [[100, 1.4], [38, 1.05], [56, 1.0], [120, 1.3]]) {
+    const e = SF.ellipse3d(C, k);
+    assert.ok(Math.abs(SF.circumference3d(e.rx, e.rz) - C) < 0.05);
+    assert.ok(Math.abs(e.rx / e.rz - k) < 1e-9);
   }
 });

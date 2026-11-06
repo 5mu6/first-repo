@@ -901,7 +901,8 @@
     const { L } = body;
     const near = (a, tol) => Math.abs(y - a) <= tol;
     if (kind === 'bottom') {
-      if (y < -1) return `${fmtSigned(-y)} past the floor (will stack/puddle — can be hemmed)`;
+      if (y < -4) return 'well past the floor (bunches up — have it hemmed)';
+      if (y < -1) return 'a little past the floor (stacks at the shoe)';
       if (y <= 3) return 'at the floor / covers your shoes';
       if (y <= 7) return 'at the top of your foot (full length)';
       if (y <= 12) return 'at the ankle (ankle-length, 九分裤 style)';
@@ -1132,7 +1133,7 @@
         const w = v.waist;
         const bw = p.pantWaist;
         if (w.elastic) {
-          let status = 'ok', verdict = `elastic waist ${round1(w.min)}–${round1(w.max)} cm fits`;
+          let status = 'ok', verdict = 'elastic waist fits';
           let pen = 0;
           if (bw > w.max) { status = 'tight'; verdict = 'elastic waist too small'; pen = Math.pow((bw - w.max) / 2, 2) + 1; }
           else if (bw > w.max - 3) { status = 'snug'; verdict = 'elastic waist near its stretch limit'; pen = 0.6; }

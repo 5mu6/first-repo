@@ -8,6 +8,7 @@
 
   // Self-hosting? Set window.SizeFitConfig = { tesseractUrl, workerPath, corePath, langPath } before app.js.
   const CONFIG = window.SizeFitConfig || {};
+  const THREE_URL = CONFIG.threeUrl || 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
   const TESSERACT_URL = CONFIG.tesseractUrl || 'https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js';
   const STORE_KEY = 'sizefit.profile.v1';
   const UNITS_KEY = 'sizefit.units';
@@ -47,7 +48,61 @@
     result: null,
     selected: null,
     images: [],
+    view: '3d',
   };
+
+  // --------------------------------------------------------------------------
+  // 3D viewer (three.js loaded on first use; falls back to the flat diagram)
+  // --------------------------------------------------------------------------
+  let viewer = null;
+  let threePromise = null;
+  function loadThree() {
+    if (window.THREE) return Promise.resolve();
+    if (!threePromise) threePromise = loadScript(THREE_URL).catch((e) => { threePromise = null; throw e; });
+    return threePromise;
+  }
+  function reducedMotion() {
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
+  }
+  function dropViewer() {
+    if (viewer) { viewer.dispose(); viewer = null; }
+  }
+  async function show3d(label) {
+    const host = $('#render');
+    try {
+      if (!SF.webglAvailable()) throw new Error('3D graphics are turned off in this browser');
+      await loadThree();
+      if (state.view !== '3d' || !state.result) return;
+      if (!viewer) {
+        host.innerHTML = '';
+        viewer = new SF.Fit3D(host, { paused: reducedMotion() });
+        syncSpinButton();
+      }
+      viewer.show(SF.buildFitModel(state.result, state.chart, label), { skin: state.profile.skin, units: lenUnit() });
+    } catch (e) {
+      dropViewer();
+      state.view = 'flat';
+      syncViewButtons();
+      $('#render-note').textContent = "Couldn't start the 3D view (" + e.message + '), so this is the flat diagram.';
+      renderFlat(label);
+    }
+  }
+  function renderFlat(label) {
+    dropViewer();
+    $('#render').innerHTML = SF.renderFit(state.result, state.chart, label, { units: lenUnit(), skin: state.profile.skin, title: $('#title').value || SF.GARMENT_TYPES[state.chart.type].label });
+  }
+  function syncViewButtons() {
+    $$('#view-mode button').forEach((b) => { const on = b.dataset.view === state.view; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    const is3d = state.view === '3d' && state.chart && state.chart.type !== 'shoes';
+    $('#view-3d-ctrls').hidden = !is3d;
+    $('#view-mode').hidden = !!(state.chart && state.chart.type === 'shoes');
+  }
+  function syncSpinButton() {
+    const b = $('#spin');
+    const spinning = viewer && !viewer.paused;
+    b.textContent = spinning ? 'Pause' : 'Rotate';
+    b.setAttribute('aria-pressed', String(!!spinning));
+  }
 
   // --------------------------------------------------------------------------
   // Storage (wrapped: may be unavailable in private windows)
@@ -456,7 +511,9 @@
     const r = state.result;
     const units = lenUnit();
     const ev = r.evals.find((e) => e.label === state.selected) || r.best;
-    $('#render').innerHTML = SF.renderFit(r, state.chart, ev.label, { units, skin: state.profile.skin, title: $('#title').value || SF.GARMENT_TYPES[state.chart.type].label });
+    syncViewButtons();
+    if (state.view === '3d' && state.chart.type !== 'shoes') show3d(ev.label);
+    else renderFlat(ev.label);
     $$('#strip button').forEach((b) => { const on = b.dataset.size === ev.label; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
     const rows = ev.items.map((i) => {
       const d = SF.MEASURE_DEFS[i.key] || { label: i.key, zh: '' };
@@ -486,7 +543,20 @@
 
   // PNG export: try a direct download, and always show the image so it can be
   // saved with a long-press / right-click where downloads are blocked.
+  function offerImage(dataUrl) {
+    const name = `sizefit-${(state.selected || 'size').replace(/[^\w-]+/g, '')}.png`;
+    const out = $('#png-out');
+    out.hidden = false;
+    out.innerHTML = `<p class="muted small">If nothing downloaded, long-press (phone) or right-click (computer) the picture and choose Save image.</p><img src="${dataUrl}" alt="Fit image for size ${esc(state.selected)}">`;
+    try {
+      const a = document.createElement('a');
+      a.href = dataUrl; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch (e) { /* downloads blocked: the image above can be saved */ }
+  }
+
   async function downloadPng() {
+    if (viewer && state.view === '3d') { offerImage(viewer.snapshot()); return; }
     const svgEl = $('#render svg');
     if (!svgEl) return;
     const xml = new XMLSerializer().serializeToString(svgEl);
@@ -501,16 +571,7 @@
       const ctx = c.getContext('2d');
       ctx.fillStyle = '#fbfaf8'; ctx.fillRect(0, 0, W, Hh);
       ctx.drawImage(img, 0, 0, W, Hh);
-      const dataUrl = c.toDataURL('image/png');
-      const name = `sizefit-${(state.selected || 'size').replace(/[^\w-]+/g, '')}.png`;
-      const out = $('#png-out');
-      out.hidden = false;
-      out.innerHTML = `<p class="muted small">If nothing downloaded, long-press (phone) or right-click (computer) the picture and choose Save image.</p><img src="${dataUrl}" alt="Fit image for size ${esc(state.selected)}">`;
-      try {
-        const a = document.createElement('a');
-        a.href = dataUrl; a.download = name;
-        document.body.appendChild(a); a.click(); a.remove();
-      } catch (e) { /* downloads blocked: the image above can be saved */ }
+      offerImage(c.toDataURL('image/png'));
     } finally { URL.revokeObjectURL(url); }
   }
 
@@ -618,6 +679,16 @@
       if (b) { state.selected = b.dataset.size; renderSelected(); }
     });
     $('#download').addEventListener('click', downloadPng);
+    $$('#view-mode button').forEach((b) => b.addEventListener('click', () => {
+      state.view = b.dataset.view;
+      $('#render-note').textContent = state.view === '3d'
+        ? "Built from your measurements, the garment is see-through so you can see the room inside it. Drag to turn it. It's a fit model, not a photo."
+        : "Front view drawn to your measurements, with each measurement labelled. It's a fit diagram, not a photo.";
+      if (state.result) renderSelected();
+    }));
+    $('#spin').addEventListener('click', () => { if (viewer) { viewer.setPaused(!viewer.paused); syncSpinButton(); } });
+    $$('[data-cam]').forEach((b) => b.addEventListener('click', () => { if (viewer) { viewer.setView(b.dataset.cam); syncSpinButton(); } }));
+    $('#render').addEventListener('pointerup', () => setTimeout(syncSpinButton, 0));
 
     // userscript hand-off (same-window postMessage from the helper)
     window.addEventListener('message', (e) => { if (e.source === window) receivePayload(e.data); });

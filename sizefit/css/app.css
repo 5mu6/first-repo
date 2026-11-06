@@ -164,3 +164,21 @@ th .unit { display: block; font-weight: 400; }
 #profile-code input { flex: 1; min-width: 0; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
 .png-out { margin-top: 10px; }
 .png-out img { display: block; width: 100%; border-radius: 10px; border: 1px solid var(--line); }
+
+/* 3D fit view */
+.view-bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.seg[hidden] { display: none; }
+.seg button { border: 0; border-radius: 0; background: var(--field); padding: 6px 12px; font-size: 13px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on, .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+#render.fit3d { position: relative; background: #f4f2ee; cursor: grab; }
+#render.fit3d:active { cursor: grabbing; }
+#render.fit3d canvas { display: block; }
+.fit3d-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.fit3d-chip { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 6px; max-width: 62%; padding: 3px 10px 3px 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.9); color: #1f1d1a; font-size: 12px; line-height: 16px; white-space: nowrap; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); will-change: transform; }
+.fit3d-chip i { flex: none; width: 10px; height: 10px; border-radius: 50%; }
+.fit3d-chip span { overflow: hidden; text-overflow: ellipsis; color: #4a453e; }
+.fit3d-header { position: absolute; left: 10px; top: 10px; display: flex; gap: 8px; align-items: center; pointer-events: none; color: #1f1d1a; }
+.fit3d-header strong { font-size: 20px; }
+.fit3d-header .score { color: #fff; font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 999px; }

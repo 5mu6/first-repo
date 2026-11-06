@@ -9,6 +9,7 @@ Reads the size chart on a Taobao / Tmall / 1688 / Weidian listing (or an agent s
 | `index.html`, `css/`, `js/app.js` | The web app. Works on a phone or computer and needs no install. |
 | `js/sizefit-core.js` | Size-chart reader and fit engine (no dependencies; also runs in Node). |
 | `js/sizefit-render.js` | Draws the fit diagram as an SVG, which the app can save as a PNG. |
+| `js/sizefit-3d.js` | The rotating 3D fit view: builds a body from your measurements and puts a semi-transparent garment on it (three.js r128, loaded from cdnjs on first use). |
 | `userscript/sizefit-helper.user.js` | Optional browser helper. It adds a **📏 SizeFit** button to product pages and sends the chart to the app in one click. |
 | `tests/` | `npm test` runs the parser and fit-engine tests against sample charts. |
 
@@ -21,7 +22,12 @@ Reads the size chart on a Taobao / Tmall / 1688 / Weidian listing (or an agent s
    - **Paste text:** copy the chart text from the listing or the agent site. Chinese and English both work, in any layout.
    - **Browser helper (desktop):** click **📏 SizeFit** on the product page, click the size-chart image(s), and press **Send**.
 4. **Check "What was read".** The table can be edited, and the result updates as you type. If the app guessed a column wrong, change it with the column dropdown. Use the *flat ×2* boxes to mark measurements that are flat-lay halves (平铺).
-5. **Step 3: read the result.** You get the recommended size and a runner-up, a check of each measurement, the fit drawing (with *Download image (PNG)*), and small drawings of every size so you can compare them.
+5. **Step 3: read the result.** You get the recommended size and a runner-up, a check of each measurement, and small drawings of every size so you can compare them. The main view is a **3D figure** built from your measurements:
+   - It turns slowly on its own. Drag it to turn it yourself, scroll to zoom, or use *Pause*, *Front*, *Side* and *Back*.
+   - The garment is semi-transparent, so you can see how much room there is between it and your body.
+   - Coloured bands mark each measured spot (chest, shoulder, waist, hip, thigh, hem, cuff): green is good, orange snug, red tight, blue loose.
+   - *Download image (PNG)* saves the current angle with its labels.
+   - *Flat diagram* switches to the labelled front-view drawing. Shoes always use a top-down foot diagram.
 
 ### What the reader understands
 
@@ -51,7 +57,7 @@ The helper downloads the images you select through the userscript manager (so th
 The app is plain static files, so any static host works:
 
 - **GitHub Pages:** go to the repository's *Settings → Pages* and choose *Deploy from a branch*, `main`, `/ (root)`. The app is then at `https://<user>.github.io/<repo>/sizefit/`. On a free plan, Pages needs the repository to be public.
-- **Self-hosting OCR:** to avoid jsDelivr, set `window.SizeFitConfig = { tesseractUrl, workerPath, corePath, langPath }` before `js/app.js` and serve the `tesseract.js`, `tesseract.js-core` and `@tesseract.js-data/{chi_sim,eng}` files yourself.
+- **Self-hosting the libraries:** set `window.SizeFitConfig = { threeUrl, tesseractUrl, workerPath, corePath, langPath, langSuffix }` before `js/app.js` and serve `three@0.128.0/build/three.min.js`, `tesseract.js`, `tesseract.js-core` and `@tesseract.js-data/{chi_sim,eng}` yourself. `langSuffix` is for hosts that only serve certain file extensions: store the language files with that extra suffix (e.g. `.wasm`).
 
 ## Development
 
