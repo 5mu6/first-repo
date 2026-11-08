@@ -105,7 +105,13 @@
   function bodySpec(body) {
     const { p, L, H, fem } = body;
     const hs = H / 178; // head / hand scale
-    const kChest = fem ? 1.3 : 1.42, kWaist = 1.28, kHip = fem ? 1.4 : 1.32;
+    // Male pelvis is narrower and deeper than female; ratios are width/depth of each cross-section.
+    const kChest = fem ? 1.3 : 1.42, kWaist = fem ? 1.3 : 1.24, kHip = fem ? 1.4 : 1.2;
+    // Muscle definition from the user's own proportions: a bigger chest-to-waist drop and
+    // larger arms / thighs for their height read as a more athletic build.
+    const drop = (p.chest - p.waist) / p.chest;
+    const mus = clamp((drop - 0.08) / 0.15, 0, 1.25) * 0.6 + clamp((p.bicep / H - 0.15) / 0.04, 0, 1.2) * 0.4;
+    const mk = lerp(0.82, 1.14, clamp(mus, 0, 1.2));
     const chestE = ellipse(p.chest, kChest);
     const waistE = ellipse(p.waist, kWaist);
     const pwE = ellipse(p.pantWaist, kWaist);
@@ -143,10 +149,14 @@
     // neck + head
     C.push(cone(v3(0, L.hps - 3, -1.4), v3(0, L.chin + 0.012 * H, -1.0), neckR * 0.98, neckR * 0.86, 3));
     C.push(ellipsoid(v3(0, H - 0.056 * H, -0.9), [0.041 * H, 0.058 * H, 0.052 * H], null, 4)); // cranium
-    C.push(ellipsoid(v3(0, H - 0.094 * H, 0.012 * H), [0.031 * H, 0.04 * H, 0.04 * H], null, 3)); // face/jaw
-    C.push(ellipsoid(v3(0, L.chin + 0.009 * H, 0.031 * H), [0.014 * H, 0.011 * H, 0.012 * H], null, 1.6)); // chin
+    C.push(ellipsoid(v3(0, H - 0.094 * H, 0.012 * H), [(fem ? 0.031 : 0.034) * H, 0.04 * H, 0.04 * H], null, 3)); // face/jaw
+    C.push(ellipsoid(v3(0, L.chin + 0.009 * H, 0.031 * H), [(fem ? 0.014 : 0.019) * H, 0.011 * H, 0.012 * H], null, 1.6)); // chin
+    if (!fem) {
+      C.push(ellipsoid(v3(0, L.chin - 0.028 * H, neckR * 0.78), [0.9 * hs, 1.5 * hs, 1.0 * hs], null, 1.0)); // Adam's apple
+      [-1, 1].forEach((s) => C.push(ellipsoid(v3(s * 0.026 * H, H - 0.106 * H, 0.008 * H), [0.011 * H, 0.013 * H, 0.017 * H], null, 2.2))); // jaw angle
+    }
     C.push(ellipsoid(v3(0, H - 0.079 * H, 0.05 * H), [0.0062 * H, 0.0145 * H, 0.0095 * H], basis([0, 1, -0.28], [1, 0, 0]), 1.0)); // nose
-    C.push(ellipsoid(v3(0, H - 0.063 * H, 0.04 * H), [0.03 * H, 0.0075 * H, 0.0125 * H], null, 1.4)); // brow
+    C.push(ellipsoid(v3(0, H - 0.063 * H, 0.04 * H), [0.03 * H, (fem ? 0.0075 : 0.009) * H, 0.0125 * H], null, 1.4)); // brow
     C.push(ellipsoid(v3(0, H - 0.103 * H, 0.046 * H), [0.013 * H, 0.0042 * H, 0.0062 * H], null, 0.8)); // lips
     [-1, 1].forEach((s) => {
       C.push(ellipsoid(v3(s * 0.0425 * H, H - 0.073 * H, -0.006 * H), [0.0062 * H, 0.0165 * H, 0.0105 * H], null, 1.0)); // ear
@@ -156,8 +166,12 @@
       C.push(ellipsoid(v3(s * lerp(neckR, shoulderHalf, 0.45), lerp(L.shoulder, L.hps, 0.35), -2.4), [chestE.rz * 0.42, (shoulderHalf - neckR) * 0.55, 3.4], basis([s * 1, -0.35, 0], [0, 0, 1]), 3));
       C.push(cone(v3(s * neckR * 0.6, L.shoulder + 0.3, chestE.rz * 0.55), v3(s * (shoulderHalf - 2.6), L.shoulder + 0.9, chestE.rz * 0.18), 0.95 * hs, 0.85 * hs, 1.6));
       if (fem) C.push(ellipsoid(v3(s * chestE.rx * 0.42, L.chest - 0.5, chestE.rz * 0.58), [5.6 * hs, 5.5 * hs, 5.2 * hs], null, 4));
-      else C.push(ellipsoid(v3(s * chestE.rx * 0.42, L.chest + 4.5, chestE.rz * 0.62), [chestE.rx * 0.46, 5.2 * hs, chestE.rz * 0.4], basis([s * 0.25, 1, 0], [1, 0, 0]), 4)); // pectorals: broad and flat
-      C.push(ellipsoid(v3(s * hipE.rx * 0.42, L.hip - 1.5, -hipE.rz * 0.4), [hipE.rx * 0.48, 9.5 * hs, hipE.rz * 0.56], null, 3.5));
+      else {
+        C.push(ellipsoid(v3(s * chestE.rx * 0.42, L.chest + 4.5, chestE.rz * 0.62), [chestE.rx * 0.46, 5.2 * hs, chestE.rz * 0.4 * mk], basis([s * 0.25, 1, 0], [1, 0, 0]), 4)); // pectorals: broad and flat
+        C.push(ellipsoid(v3(s * chestE.rx * 0.6, lerp(L.chest, L.waist, 0.45), -chestE.rz * 0.4), [chestE.rx * 0.27 * mk, 11 * hs, chestE.rz * 0.42], basis([s * 0.35, 1, 0], [1, 0, 0]), 3)); // lats: V-taper
+        C.push(ellipsoid(v3(s * waistE.rx * 0.7, lerp(L.waist, L.pantWaist, 0.4), 0), [waistE.rx * 0.24, 7 * hs, waistE.rz * 0.55], null, 2.5)); // obliques
+      }
+      C.push(ellipsoid(v3(s * hipE.rx * 0.42, L.hip - 1.5, -hipE.rz * 0.4), [hipE.rx * (fem ? 0.48 : 0.44), 9.5 * hs, hipE.rz * (fem ? 0.56 : 0.52)], null, 3.5));
     });
     C.push(Object.assign(cone(v3(0, L.waist - 2, -waistE.rz * 0.97), v3(0, L.chest + 4, -chestE.rz * 0.96), 0.9, 0.9, 1.8), { sub: true })); // spine groove
 
@@ -177,7 +191,7 @@
       const hdir = norm(add(mul(fdir, Math.cos(0.08)), v3(0, 0, Math.sin(0.08))));
       const elbowR = bicepR * 0.7, wristR = bicepR * 0.5;
       P.push(cone(J, E, bicepR * 1.0, elbowR, 3));
-      P.push(ellipsoid(add(J, v3(s * 1.2, 0.8, 0)), [bicepR * 1.18, bicepR * 1.42, bicepR * 1.22], basis(dir, [0, 0, 1]), 3.2)); // deltoid
+      P.push(ellipsoid(add(J, v3(s * 1.2, 0.8, 0)), [bicepR * 1.18 * mk, bicepR * 1.42, bicepR * 1.22 * mk], basis(dir, [0, 0, 1]), 3.2)); // deltoid
       P.push(ellipsoid(add(add(J, mul(dir, upper * 0.5)), v3(0, 0, bicepR * 0.25)), [bicepR * 0.82, upper * 0.3, bicepR * 0.86], basis(dir, [0, 0, 1]), 2.4)); // biceps / triceps mass
       P.push(cone(E, W, elbowR * 1.04, wristR, 2.2));
       P.push(ellipsoid(add(E, mul(fdir, p.armLength * 0.12)), [bicepR * 0.84, p.armLength * 0.14, bicepR * 0.8], basis(fdir, [0, 0, 1]), 2.4)); // forearm muscle
@@ -203,11 +217,11 @@
       const tc = (J[1] - (L.crotch - 4)) / thighLen;
       const rTop = (thighR - kneeR * tc) / Math.max(1 - tc, 0.2);
       P.push(cone(J, K, rTop, kneeR, 3));
-      P.push(ellipsoid(v3(s * hipJx * 0.95, L.midThigh + 3, thighR * 0.32), [thighR * 0.7, thighLen * 0.32, thighR * 0.58], null, 4)); // quadriceps
+      P.push(ellipsoid(v3(s * hipJx * 0.95, L.midThigh + 3, thighR * 0.32), [thighR * 0.7, thighLen * 0.32, thighR * 0.58 * mk], null, 4)); // quadriceps
       P.push(ellipsoid(v3(s * hipJx * 0.93, L.midThigh + 4, -thighR * 0.3), [thighR * 0.68, thighLen * 0.3, thighR * 0.55], null, 4)); // hamstrings
       P.push(ellipsoid(v3(K[0], L.knee + 1.4, kneeR * 0.72), [2.4 * hs, 2.8 * hs, 1.6 * hs], null, 1.6)); // knee cap
       P.push(cone(K, A, kneeR * 0.94, ankleR, 2.5));
-      P.push(ellipsoid(v3(K[0] * 0.98, L.calf + 0.045 * H, -calfR * 0.36), [calfR * 0.78, 0.068 * H, calfR * 0.72], null, 3)); // calf
+      P.push(ellipsoid(v3(K[0] * 0.98, L.calf + 0.045 * H, -calfR * 0.36), [calfR * 0.78, 0.068 * H, calfR * 0.72 * mk], null, 3)); // calf
       P.push(ellipsoid(v3(A[0] + s * 2.6 * hs, L.ankle, -0.6), [1.2, 1.4, 1.3], null, 1.0)); // ankle bones
       P.push(ellipsoid(v3(A[0] - s * 2.4 * hs, L.ankle + 0.5, -0.4), [1.2, 1.4, 1.3], null, 1.0));
       // foot, slightly turned out
@@ -247,7 +261,7 @@
     let bounds = groups.reduce((acc, g) => unionBox(acc, g.box), groups[0].box);
     bounds = { min: [bounds.min[0] - 1, -0.6, bounds.min[2] - 1], max: [bounds.max[0] + 1, H + 1, bounds.max[2] + 1] };
 
-    return { H, L, torso, groups, bounds, arms, legs, armAngle, chestE, waistE, hipE, pwE, shoulderHalf, bicepR, handLen, armX0, kChest, kWaist, kHip, fem };
+    return { H, L, torso, groups, bounds, arms, legs, armAngle, muscle: mk, chestE, waistE, hipE, pwE, shoulderHalf, bicepR, handLen, armX0, kChest, kWaist, kHip, fem };
   }
 
   // Torso loft lookup table (Catmull-Rom between cross-sections, every 0.5 cm)
