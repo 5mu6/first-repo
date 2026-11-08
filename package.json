@@ -1,0 +1,8 @@
+{
+  "name": "sizefit",
+  "private": true,
+  "description": "Reads Chinese size charts (Taobao, 1688, Weidian), recommends a size for your measurements and draws the fit.",
+  "scripts": {
+    "test": "node --test sizefit/tests/*.test.js"
+  }
+}
