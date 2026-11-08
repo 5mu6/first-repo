@@ -149,6 +149,7 @@
             <button type="button" data-view="flat" aria-pressed="false">Flat diagram</button>
           </div>
           <div class="seg" id="view-3d-ctrls">
+            <button type="button" id="heatmap" aria-pressed="true">Fit map</button>
             <button type="button" id="spin" aria-pressed="true">Pause</button>
             <button type="button" data-cam="front">Front</button>
             <button type="button" data-cam="side">Side</button>
@@ -158,7 +159,7 @@
         <div id="render"></div>
         <figcaption>
           <button type="button" id="download" class="primary">Download image (PNG)</button>
-          <span class="muted" id="render-note">Built from your measurements, the garment is see-through so you can see the room inside it. Drag to turn it. It's a fit model, not a photo.</span>
+          <span class="muted" id="render-note">A 3D scan built from your measurements. The garment is see-through and coloured by how far the fabric sits from your skin (red tight, green fitted, blue loose). Drag to turn it. It's a fit model, not a photo.</span>
         </figcaption>
         <div id="png-out" class="png-out" hidden></div>
       </figure>

@@ -172,13 +172,59 @@ th .unit { display: block; font-weight: 400; }
 .seg button { border: 0; border-radius: 0; background: var(--field); padding: 6px 12px; font-size: 13px; }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button.on, .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-#render.fit3d { position: relative; background: #f4f2ee; cursor: grab; }
+#render.fit3d {
+  position: relative; cursor: grab; border-color: #10314a;
+  background: radial-gradient(ellipse at 50% 42%, #133352 0%, #0a1b2e 45%, #040a12 100%);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
 #render.fit3d:active { cursor: grabbing; }
-#render.fit3d canvas { display: block; }
-.fit3d-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-.fit3d-chip { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 6px; max-width: 62%; padding: 3px 10px 3px 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.9); color: #1f1d1a; font-size: 12px; line-height: 16px; white-space: nowrap; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); will-change: transform; }
-.fit3d-chip i { flex: none; width: 10px; height: 10px; border-radius: 50%; }
-.fit3d-chip span { overflow: hidden; text-overflow: ellipsis; color: #4a453e; }
-.fit3d-header { position: absolute; left: 10px; top: 10px; display: flex; gap: 8px; align-items: center; pointer-events: none; color: #1f1d1a; }
-.fit3d-header strong { font-size: 20px; }
-.fit3d-header .score { color: #fff; font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 999px; }
+#render.fit3d canvas { display: block; position: relative; z-index: 1; }
+.scan-hud { position: absolute; inset: 0; z-index: 2; pointer-events: none; color: #d6ecff; text-shadow: 0 1px 3px rgba(2, 8, 16, 0.9); }
+.scan-hud .hud-corners i { position: absolute; width: 18px; height: 18px; border-color: rgba(120, 220, 255, 0.55); border-style: solid; border-width: 0; }
+.scan-hud .hud-corners i:nth-child(1) { left: 8px; top: 8px; border-left-width: 1.5px; border-top-width: 1.5px; }
+.scan-hud .hud-corners i:nth-child(2) { right: 8px; top: 8px; border-right-width: 1.5px; border-top-width: 1.5px; }
+.scan-hud .hud-corners i:nth-child(3) { left: 8px; bottom: 8px; border-left-width: 1.5px; border-bottom-width: 1.5px; }
+.scan-hud .hud-corners i:nth-child(4) { right: 8px; bottom: 8px; border-right-width: 1.5px; border-bottom-width: 1.5px; }
+.hud-tl { position: absolute; left: 20px; top: 18px; }
+.hud-kicker { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #6fd6ff; }
+.hud-size { font: 700 34px/1.05 system-ui, -apple-system, "Segoe UI", sans-serif; color: #fff; margin-top: 4px; letter-spacing: -0.01em; }
+.hud-sub { font-size: 11px; color: #9fc3e0; margin-top: 2px; max-width: 220px; }
+.hud-tr { position: absolute; right: 18px; top: 16px; display: flex; align-items: center; gap: 8px; }
+#render .hud-gauge { width: 54px; height: 54px; transform: rotate(-90deg); display: block; }
+.hud-gauge circle { fill: none; stroke-width: 5; }
+.hud-gauge .g-bg { stroke: rgba(120, 200, 255, 0.15); }
+.hud-gauge .g-fg { stroke-linecap: round; filter: drop-shadow(0 0 4px currentColor); }
+.hud-score { display: flex; flex-direction: column; }
+.hud-score b { font: 700 24px/1 system-ui, sans-serif; }
+.hud-score span { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: #8fb6d6; }
+.hud-bl { position: absolute; left: 20px; bottom: 64px; display: grid; gap: 3px; font-size: 11px; }
+.hud-bl div { display: flex; gap: 10px; justify-content: space-between; min-width: 128px; border-bottom: 1px solid rgba(120, 200, 255, 0.12); padding-bottom: 2px; }
+.hud-bl span { color: #7fa9cc; text-transform: uppercase; letter-spacing: 0.1em; font-size: 9.5px; }
+.hud-bl b { color: #e8f6ff; font-weight: 600; font-variant-numeric: tabular-nums; }
+.hud-legend { position: absolute; left: 20px; right: 20px; bottom: 16px; }
+.hud-legend-t { font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #7fa9cc; margin-bottom: 4px; }
+.hud-bar { height: 6px; border-radius: 3px; box-shadow: 0 0 10px rgba(80, 200, 255, 0.25); }
+.hud-ticks { position: relative; height: 14px; font-size: 9.5px; color: #a9c9e4; }
+.hud-ticks span { position: absolute; top: 2px; transform: translateX(-50%); white-space: nowrap; }
+.hud-legend-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.hud-key { display: flex; gap: 10px; font-size: 9.5px; color: #c5dcf0; }
+.hud-key i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: -0.5px; }
+#render .hud-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; display: block; }
+.hud-lines path { fill: none; stroke-width: 1; opacity: 0.9; }
+.hud-labels { position: absolute; inset: 0; }
+.hud-label { position: absolute; left: 0; top: 0; padding: 5px 9px 6px 10px; background: rgba(6, 20, 36, 0.78); border: 1px solid rgba(120, 200, 255, 0.18); border-left: 3px solid var(--c); border-radius: 4px; backdrop-filter: blur(3px); will-change: transform; }
+.hl-top { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; }
+.hl-name { color: #e8f6ff; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+.hl-val { color: var(--c); font-weight: 700; font-variant-numeric: tabular-nums; }
+.hl-verdict { font: 11px/1.3 system-ui, sans-serif; color: #b8d4ec; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hud-busy { position: absolute; inset: 0; display: none; place-items: center; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #7fdcff; }
+.scan-hud.busy .hud-busy { display: grid; }
+.scan-hud.compact .hud-size { font-size: 26px; }
+.scan-hud.compact .hud-bl { display: none; }
+.scan-hud.compact .hud-gauge { width: 42px !important; height: 42px !important; }
+.scan-hud.compact .hud-score b { font-size: 19px; }
+.scan-hud.compact .hl-verdict { font-size: 10px; }
+.scan-hud.compact .hl-top { font-size: 10px; }
+.scan-hud.compact .hud-key { display: none; }
+.scan-hud.compact .hud-legend-t { font-size: 8.5px; }
+.scan-hud.compact .hud-label { padding: 4px 7px 5px 8px; }

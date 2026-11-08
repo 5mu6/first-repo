@@ -78,7 +78,11 @@
         viewer = new SF.Fit3D(host, { paused: reducedMotion() });
         syncSpinButton();
       }
-      viewer.show(SF.buildFitModel(state.result, state.chart, label), { skin: state.profile.skin, units: lenUnit() });
+      const fitWord = { slim: 'slim', regular: 'regular', relaxed: 'relaxed', oversized: 'oversized' }[SF.GARMENT_TYPES[state.chart.type].group === 'bottom' ? state.profile.fitBottom : state.profile.fitTop] || 'regular';
+      viewer.show(SF.buildFitModel(state.result, state.chart, label), {
+        skin: state.profile.skin, units: lenUnit(), profile: state.result.body.p,
+        subtitle: ($('#title').value || SF.GARMENT_TYPES[state.chart.type].label).slice(0, 40) + ' · ' + fitWord + ' fit',
+      });
     } catch (e) {
       dropViewer();
       state.view = 'flat';
@@ -682,10 +686,15 @@
     $$('#view-mode button').forEach((b) => b.addEventListener('click', () => {
       state.view = b.dataset.view;
       $('#render-note').textContent = state.view === '3d'
-        ? "Built from your measurements, the garment is see-through so you can see the room inside it. Drag to turn it. It's a fit model, not a photo."
+        ? "A 3D scan built from your measurements. The garment is see-through and coloured by how far the fabric sits from your skin (red tight, green fitted, blue loose). Drag to turn it. It's a fit model, not a photo."
         : "Front view drawn to your measurements, with each measurement labelled. It's a fit diagram, not a photo.";
       if (state.result) renderSelected();
     }));
+    $('#heatmap').addEventListener('click', () => {
+      const on = $('#heatmap').getAttribute('aria-pressed') !== 'true';
+      $('#heatmap').setAttribute('aria-pressed', String(on));
+      if (viewer) viewer.setHeat(on);
+    });
     $('#spin').addEventListener('click', () => { if (viewer) { viewer.setPaused(!viewer.paused); syncSpinButton(); } });
     $$('[data-cam]').forEach((b) => b.addEventListener('click', () => { if (viewer) { viewer.setView(b.dataset.cam); syncSpinButton(); } }));
     $('#render').addEventListener('pointerup', () => setTimeout(syncSpinButton, 0));

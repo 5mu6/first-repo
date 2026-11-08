@@ -9,7 +9,7 @@ Reads the size chart on a Taobao / Tmall / 1688 / Weidian listing (or an agent s
 | `index.html`, `css/`, `js/app.js` | The web app. Works on a phone or computer and needs no install. |
 | `js/sizefit-core.js` | Size-chart reader and fit engine (no dependencies; also runs in Node). |
 | `js/sizefit-render.js` | Draws the fit diagram as an SVG, which the app can save as a PNG. |
-| `js/sizefit-3d.js` | The rotating 3D fit view: builds a body from your measurements and puts a semi-transparent garment on it (three.js r128, loaded from cdnjs on first use). |
+| `js/sizefit-3d.js` | The 3D body scan. It builds a signed-distance-field body from your measurements, meshes it with surface nets, drapes the garment over it and colours it as a fit map. The viewer uses three.js r128, loaded from cdnjs on first use. |
 | `userscript/sizefit-helper.user.js` | Optional browser helper. It adds a **📏 SizeFit** button to product pages and sends the chart to the app in one click. |
 | `tests/` | `npm test` runs the parser and fit-engine tests against sample charts. |
 
@@ -22,11 +22,12 @@ Reads the size chart on a Taobao / Tmall / 1688 / Weidian listing (or an agent s
    - **Paste text:** copy the chart text from the listing or the agent site. Chinese and English both work, in any layout.
    - **Browser helper (desktop):** click **📏 SizeFit** on the product page, click the size-chart image(s), and press **Send**.
 4. **Check "What was read".** The table can be edited, and the result updates as you type. If the app guessed a column wrong, change it with the column dropdown. Use the *flat ×2* boxes to mark measurements that are flat-lay halves (平铺).
-5. **Step 3: read the result.** You get the recommended size and a runner-up, a check of each measurement, and small drawings of every size so you can compare them. The main view is a **3D figure** built from your measurements:
-   - It turns slowly on its own. Drag it to turn it yourself, scroll to zoom, or use *Pause*, *Front*, *Side* and *Back*.
-   - The garment is semi-transparent, so you can see how much room there is between it and your body.
-   - Coloured bands mark each measured spot (chest, shoulder, waist, hip, thigh, hem, cuff): green is good, orange snug, red tight, blue loose.
-   - *Download image (PNG)* saves the current angle with its labels.
+5. **Step 3: read the result.** You get the recommended size and a runner-up, a check of each measurement, and small drawings of every size so you can compare them. The main view is a **3D body scan** built from your measurements:
+   - **The body** is a high-resolution surface (about 90,000 triangles). The torso is shaped through your chest, waist and hip cross-sections and blended smoothly with arms, legs, muscles, hands, feet and a face. Its chest, waist and hips come out within a few percent of your measurements (the tests check this).
+   - **The garment** is a see-through shell built from the size chart and draped so it never passes through the body. It's coloured as a **fit map**: yellow-green where the fabric touches you, then green, teal and blue as the gap grows to 6″ or more. Red and orange appear only where the size check found that area too tight or snug. *Fit map* switches to a plain fabric colour.
+   - It turns slowly on a scanner platform while a scanning beam sweeps up and down. Drag it to turn it yourself, scroll to zoom, or use *Pause*, *Front*, *Side* and *Back*. With reduced motion turned on in your device settings, it starts still.
+   - Callouts list each checked measurement (chest, shoulder, waist, hip, thigh, hem, cuff) next to a glowing band on the garment. The corners show your size, fit score and body measurements.
+   - *Download image (PNG)* saves the current angle with its callouts.
    - *Flat diagram* switches to the labelled front-view drawing. Shoes always use a top-down foot diagram.
 
 ### What the reader understands

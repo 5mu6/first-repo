@@ -108,28 +108,58 @@ test('renderer produces an SVG for every fixture', () => {
   }
 });
 
-test('3D model: finite geometry, garment outside the body, markers for scored items', () => {
-  for (const f of fs.readdirSync(path.join(__dirname, 'fixtures'))) {
-    const r = SF.analyze(fx(f), ME);
+test('3D body: meshes cleanly and matches the measurements', () => {
+  const r = SF.analyze(fx('hoodie-flat-columns.txt'), ME);
+  const m = SF.buildFitModel(r.result, r.chart, r.result.best.label);
+  const f = SF.makeBodySDF(m.spec);
+  const mesh = SF.polygonize(f, m.spec.bounds, 1.2);
+  assert.ok(mesh.positions.length / 3 > 10000, 'enough vertices');
+  assert.ok(mesh.indices.length / 3 > 20000, 'enough triangles');
+  for (const x of mesh.positions) assert.ok(Number.isFinite(x));
+  for (const x of mesh.normals) assert.ok(Number.isFinite(x));
+  const L = r.result.body.L, p = r.result.body.p;
+  for (const [name, y, want] of [['chest', L.chest, p.chest], ['waist', L.waist, p.waist], ['hip', L.hip, p.hip]]) {
+    const got = SF.sliceCircumference(f, y, 0, 0, 45);
+    assert.ok(Math.abs(got - want) / want < 0.08, `${name}: model ${got.toFixed(1)} vs measured ${want}`);
+  }
+  // nothing below the floor, head at full height
+  let minY = Infinity, maxY = -Infinity;
+  for (let i = 1; i < mesh.positions.length; i += 3) { minY = Math.min(minY, mesh.positions[i]); maxY = Math.max(maxY, mesh.positions[i]); }
+  assert.ok(minY > -0.6 && Math.abs(maxY - ME.height) < 2, `height span ${minY.toFixed(1)}..${maxY.toFixed(1)}`);
+});
+
+test('3D garment: drapes outside the body for every size and chart', () => {
+  for (const name of fs.readdirSync(path.join(__dirname, 'fixtures'))) {
+    const r = SF.analyze(fx(name), ME);
     if (r.type === 'shoes') continue;
+    const m0 = SF.buildFitModel(r.result, r.chart, r.result.best.label);
+    const f = SF.makeBodySDF(m0.spec);
     for (const e of r.result.evals) {
       const m = SF.buildFitModel(r.result, r.chart, e.label);
-      const rings = m.body.lofts.concat(m.garment.lofts).flatMap((l) => l.rings);
-      for (const q of rings) {
-        for (const k of ['x', 'y', 'z', 'rx', 'rz']) assert.ok(Number.isFinite(q[k]), `${f} ${e.label} ${k}`);
-        assert.ok(q.rx > 0 && q.rz > 0, `${f} ${e.label} radius`);
-      }
-      // the garment shell never cuts inside the torso it covers
-      const torso = m.body.lofts[0].rings;
-      const shell = m.garment.lofts[0].rings;
-      for (const g of shell) {
-        const b = torso.find((t) => Math.abs(t.y - g.y) < 0.01);
-        if (b && g.y < torso[2].y) assert.ok(SF.circumference3d(g.rx, g.rz) >= SF.circumference3d(b.rx, b.rz) - 0.5, `${f} ${e.label} y=${g.y}`);
+      for (const tube of m.garment.tubes) {
+        const g = SF.garmentMesh(tube, f, { segs: 48, spacing: 3 });
+        for (let i = 0; i < g.positions.length; i += 3) {
+          assert.ok(Number.isFinite(g.positions[i]) && Number.isFinite(g.positions[i + 1]) && Number.isFinite(g.positions[i + 2]), name);
+          // in the armpit and between touching thighs there is no room for fabric; allow a shallow crease there
+          assert.ok(f(g.positions[i], g.positions[i + 1], g.positions[i + 2]) > (tube.part === 'body' ? -0.3 : -1.5), `${name} ${e.label} ${tube.part} inside the body`);
+        }
+        for (const t of g.tension) assert.ok(t >= -1 && t <= 1);
       }
     }
-    const best = SF.buildFitModel(r.result, r.chart, r.result.best.label);
-    assert.ok(best.markers.length > 0 || r.result.best.items.every((i) => i.kind === 'range'), f);
+    const best = m0.markers.length > 0 || r.result.best.items.every((i) => i.kind === 'range');
+    assert.ok(best, name + ' markers');
   }
+});
+
+test('3D fit map: red only where the size check says tight', () => {
+  const r = SF.analyze(fx('tee-rows.txt'), Object.assign({}, ME, { chest: 112 })); // XL (112 cm) is tight on a 112 cm chest
+  const m = SF.buildFitModel(r.result, r.chart, 'XL');
+  const torso = m.garment.tubes.find((t) => t.part === 'body');
+  assert.ok(torso.tension.some((z) => z.status === 'tight'));
+  const loose = SF.buildFitModel(SF.analyze(fx('hoodie-flat-columns.txt'), ME).result, SF.analyze(fx('hoodie-flat-columns.txt'), ME).chart, '2XL');
+  assert.ok(loose.garment.tubes.every((t) => !(t.tension || []).some((z) => z.status === 'tight')));
+  const red = SF.fitColor(0.3, 1), calm = SF.fitColor(0.3, 0);
+  assert.ok(red[0] > 0.95 && red[1] < 0.3 && calm[1] > 0.9);
 });
 
 test('3D ellipse helper round-trips circumference', () => {
